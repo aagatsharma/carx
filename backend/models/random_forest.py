@@ -1,71 +1,67 @@
-from collections import Counter
-
 import numpy as np
+from decision_tree import DecisionTreeRegressor
 
-from decision_tree import DecisionTree
-
-
-def bootstrap_sample(X, y):
-    n_samples = X.shape[0]
-    idxs = np.random.choice(n_samples, n_samples, replace=True)
-    return X[idxs], y[idxs]
-
-
-def most_common_label(y):
-    counter = Counter(y)
-    most_common = counter.most_common(1)[0][0]
-    return most_common
-
-
-class RandomForest:
-    def __init__(self, n_trees=10, min_samples_split=2, max_depth=100, n_feats=None):
-        self.n_trees = n_trees
-        self.min_samples_split = min_samples_split
+class RandomForestRegressor:
+    def __init__(self, n_estimators=100, max_depth=None, min_samples_split=2, max_features='sqrt'):
+        self.n_estimators = n_estimators
         self.max_depth = max_depth
-        self.n_feats = n_feats
+        self.min_samples_split = min_samples_split
+        self.max_features = max_features
         self.trees = []
-
+        
+    def _bootstrap_sample(self, X, y):
+        """Create a bootstrap sample."""
+        n_samples = X.shape[0]
+        idxs = np.random.choice(n_samples, size=n_samples, replace=True)
+        return X[idxs], y[idxs]
+    
+    def _get_max_features(self, n_features):
+        """Calculate number of features to consider at each split."""
+        if isinstance(self.max_features, str):
+            if self.max_features == 'sqrt':
+                return int(np.sqrt(n_features))
+            elif self.max_features == 'log2':
+                return int(np.log2(n_features))
+        elif isinstance(self.max_features, float):
+            return int(self.max_features * n_features)
+        elif isinstance(self.max_features, int):
+            return self.max_features
+        return n_features
+    
     def fit(self, X, y):
-        self.trees = []
-        for _ in range(self.n_trees):
-            tree = DecisionTree(
-                min_samples_split=self.min_samples_split,
+        """Build the random forest."""
+        n_features = X.shape[1]
+        self.feature_subset_size = self._get_max_features(n_features)
+        
+        # Create trees
+        for _ in range(self.n_estimators):
+            # Bootstrap sample
+            X_sample, y_sample = self._bootstrap_sample(X, y)
+            
+            # Create and train tree
+            tree = DecisionTreeRegressor(
                 max_depth=self.max_depth,
-                n_feats=self.n_feats,
+                min_samples_split=self.min_samples_split
             )
-            X_samp, y_samp = bootstrap_sample(X, y)
-            tree.fit(X_samp, y_samp)
-            self.trees.append(tree)
-
+            
+            # Randomly select features for this tree
+            feature_idxs = np.random.choice(n_features, 
+                                          size=self.feature_subset_size, 
+                                          replace=False)
+            tree.fit(X_sample[:, feature_idxs], y_sample)
+            
+            # Store the tree and its feature indices
+            self.trees.append((tree, feature_idxs))
+            
+        return self
+    
     def predict(self, X):
-        tree_preds = np.array([tree.predict(X) for tree in self.trees])
-        tree_preds = np.swapaxes(tree_preds, 0, 1)
-        y_pred = [most_common_label(tree_pred) for tree_pred in tree_preds]
-        return np.array(y_pred)
-
-
-# Testing
-if __name__ == "__main__":
-    # Imports
-    from sklearn import datasets
-    from sklearn.model_selection import train_test_split
-
-    def accuracy(y_true, y_pred):
-        accuracy = np.sum(y_true == y_pred) / len(y_true)
-        return accuracy
-
-    data = datasets.load_breast_cancer()
-    X = data.data
-    y = data.target
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=1234
-    )
-
-    clf = RandomForest(n_trees=3, max_depth=10)
-
-    clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-    acc = accuracy(y_test, y_pred)
-
-    print("Accuracy:", acc)
+        """Predict target values."""
+        # Get predictions from all trees
+        predictions = np.zeros((X.shape[0], len(self.trees)))
+        
+        for i, (tree, feature_idxs) in enumerate(self.trees):
+            predictions[:, i] = tree.predict(X[:, feature_idxs])
+            
+        # Return mean prediction
+        return np.mean(predictions, axis=1)
