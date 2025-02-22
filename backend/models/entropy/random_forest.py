@@ -1,5 +1,4 @@
 import numpy as np
-from collections import Counter
 
 class DecisionTreeRegressor:
     def __init__(self, max_depth=None, min_samples_split=2):
