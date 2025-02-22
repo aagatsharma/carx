@@ -3,6 +3,7 @@ import { useState } from "react";
 import loginimg from "../assets/loginimg.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth-provider";
+import toast from "react-hot-toast";
 const Login = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
@@ -22,10 +23,16 @@ const Login = () => {
         body: JSON.stringify(data),
       });
       const response = await res.json();
-      login(response.user);
-      navigate("/");
+      if (response.user) {
+        login(response.user);
+        toast.success("Successfully Logged In!");
+        navigate("/");
+      } else {
+        toast.error("Invalid Credentials!");
+      }
     } catch (error) {
       setError("Failed to submit form. Please try again.");
+      toast.error("Something went wrong!");
       console.error("Error:", error);
     }
   };

@@ -9,11 +9,13 @@ import Predict from "./Components/Predict";
 import { AuthProvider } from "./Components/auth-provider";
 import Cars from "./Components/cars";
 import CarDetail from "./pages/CarDetail";
+import { Toaster } from "react-hot-toast";
 function App() {
   return (
     <>
       <AuthProvider>
         <Header />
+        <Toaster position="top-center" reverseOrder={false} />
         <Routes>
           <Route index element={<Home />} />
           <Route path="/home" element={<Home />} />
