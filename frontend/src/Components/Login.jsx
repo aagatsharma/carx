@@ -79,6 +79,7 @@ const Login = () => {
                   className="pl-2 w-full outline-none border-none"
                   type="email"
                   name="email"
+                  required
                   value={data.email}
                   onChange={(e) => {
                     setData((prev) => ({
@@ -107,6 +108,7 @@ const Login = () => {
                   type="password"
                   name="password"
                   id="password"
+                  required
                   onChange={(e) => {
                     setData((prev) => ({
                       ...prev,

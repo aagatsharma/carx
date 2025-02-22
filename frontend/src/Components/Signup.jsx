@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import signupimg from "../assets/signupimg.jpg";
 import { useAuth } from "./auth-provider";
 import { useState } from "react";
+import toast from "react-hot-toast";
 const Signup = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -14,16 +15,24 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await fetch("http://localhost:8000/api/register", {
+      const response = await fetch("http://localhost:8000/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
-      navigate("/login");
+
+      if (response.id) {
+        navigate("/login");
+        toast.success("Successfully Registered User!");
+        navigate("/");
+      } else {
+        toast.error("User already exists");
+      }
     } catch (error) {
       setError("Failed to submit form. Please try again.");
+      toast.error("Something went wrong!");
       console.error("Error:", error);
     }
   };
@@ -70,6 +79,8 @@ const Signup = () => {
                   className="pl-2 w-full outline-none border-none"
                   type="text"
                   name="name"
+                  required
+                  min={2}
                   placeholder="Name"
                   value={data.name}
                   onChange={(e) => {
@@ -102,6 +113,7 @@ const Signup = () => {
                   className="pl-2 w-full outline-none border-none"
                   type="email"
                   name="email"
+                  required
                   placeholder="Email Address"
                   value={data.email}
                   onChange={(e) => {
@@ -132,6 +144,8 @@ const Signup = () => {
                   type="password"
                   name="password"
                   id="password"
+                  required
+                  min={6}
                   placeholder="Password"
                   value={data.password}
                   onChange={(e) => {
